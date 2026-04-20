@@ -13,6 +13,10 @@ resize();
 let keys = {};
 let touch = { x: 0, y: 0, active: false };
 
+// 🏆 BEST SCORE (localStorage)
+let best = localStorage.getItem("bestScore") || 0;
+document.getElementById("best").innerText = best;
+
 // teclado (PC)
 document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
 document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
@@ -132,6 +136,13 @@ function update() {
         enemies.splice(ei, 1);
         bullets.splice(bi, 1);
         score += 10;
+
+        // 🏆 actualizar best score en tiempo real
+        if (score > best) {
+          best = score;
+          localStorage.setItem("bestScore", best);
+          document.getElementById("best").innerText = best;
+        }
       }
     });
   });
@@ -176,6 +187,12 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
   } else {
     alert("Game Over | Score: " + score);
+
+    // 🏆 guardar récord final
+    if (score > best) {
+      localStorage.setItem("bestScore", score);
+    }
+
     location.reload();
   }
 }

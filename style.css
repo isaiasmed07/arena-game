@@ -29,17 +29,31 @@ canvas {
   font-size: 16px;
   z-index: 10;
 
-  /* 👇 mejora en móvil */
-  background: rgba(0,0,0,0.4);
-  padding: 8px 12px;
-  border-radius: 8px;
+  background: rgba(0,0,0,0.5);
+  padding: 10px 14px;
+  border-radius: 10px;
+
+  min-width: 140px;
 }
 
-/* 📱 ajustes para pantallas pequeñas */
+/* 📊 estilo de líneas del UI */
+#ui p {
+  margin: 4px 0;
+}
+
+/* 🏆 BEST SCORE destacado (sin ser invasivo) */
+#ui p:last-child {
+  color: gold;
+  font-weight: bold;
+}
+
+/* 📱 ajustes móviles */
 @media (max-width: 600px) {
   #ui {
     font-size: 14px;
     top: 5px;
     left: 5px;
+    padding: 8px 10px;
+    min-width: 120px;
   }
 }
