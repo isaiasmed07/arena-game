@@ -128,7 +128,7 @@ async function saveGlobalScore(finalScore) {
   }
 }
 
-// ===================== START GAME (FIX IMPORTANTE) =====================
+// ===================== START GAME =====================
 window.startGame = function () {
   const name = document.getElementById("playerName").value || "Player";
   const avatar = document.getElementById("playerAvatar").value || "🙂";
@@ -138,11 +138,11 @@ window.startGame = function () {
 
   document.getElementById("startScreen").style.display = "none";
 
-  // ✅ FIX: evitar crash si supabase aún no carga
-  if (window.supabase) {
+  // ⚡ Supabase seguro (evita crash si CDN no carga aún)
+  if (window.supabase && window.supabase.createClient) {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   } else {
-    console.warn("Supabase no cargó todavía");
+    console.warn("Supabase aún no disponible, leaderboard desactivado temporalmente");
   }
 
   // reset juego
