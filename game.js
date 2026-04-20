@@ -5,9 +5,9 @@ const ctx = canvas.getContext("2d");
 const SUPABASE_URL = "https://mujgrjmwfeflvbutmbts.supabase.co";
 const SUPABASE_KEY = "sb_publishable_6Aw1vjP0NJ7IOF03qPc39Q_nME8oMMK";
 
-let supabase = null; // 👈 se inicializa después
+let supabase = null;
 
-// ===================== ESTADO DEL JUEGO =====================
+// ===================== ESTADO =====================
 let gameStarted = false;
 
 // ===================== RESIZE =====================
@@ -128,7 +128,7 @@ async function saveGlobalScore(finalScore) {
   }
 }
 
-// ===================== START GAME =====================
+// ===================== START GAME (FIX IMPORTANTE) =====================
 window.startGame = function () {
   const name = document.getElementById("playerName").value || "Player";
   const avatar = document.getElementById("playerAvatar").value || "🙂";
@@ -138,10 +138,14 @@ window.startGame = function () {
 
   document.getElementById("startScreen").style.display = "none";
 
-  // inicializar supabase SOLO cuando empieza el juego
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // ✅ FIX: evitar crash si supabase aún no carga
+  if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  } else {
+    console.warn("Supabase no cargó todavía");
+  }
 
-  // reset estado
+  // reset juego
   gameStarted = true;
   score = 0;
   player.hp = 100;
