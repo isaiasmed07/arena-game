@@ -1,7 +1,14 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// 📱 Resize responsive
+// ===================== SUPABASE =====================
+const SUPABASE_URL = "https://mujgrjmwfeflvbutmbts.supabase.co";
+const SUPABASE_KEY = "sb_publishable_6Aw1vjP0NJ7IOF03qPc39Q_nME8oMMK";
+
+// cliente supabase (CDN)
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ===================== RESIZE =====================
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -9,19 +16,19 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// 👆 Controles
+// ===================== CONTROLES =====================
 let keys = {};
 let touch = { x: 0, y: 0, active: false };
 
-// 🏆 BEST SCORE (localStorage)
+// 🏆 BEST LOCAL
 let best = localStorage.getItem("bestScore") || 0;
 document.getElementById("best").innerText = best;
 
-// teclado (PC)
+// teclado
 document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
 document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-// touch (móvil)
+// touch
 canvas.addEventListener("touchstart", (e) => {
   const t = e.touches[0];
   touch.x = t.clientX;
@@ -41,12 +48,12 @@ canvas.addEventListener("touchend", () => {
   touch.active = false;
 });
 
-// 🔫 PC click shoot
+// click PC
 canvas.addEventListener("click", e => {
   shoot(e.clientX, e.clientY);
 });
 
-// ---------------- GAME DATA ----------------
+// ===================== GAME DATA =====================
 let player = {
   x: canvas.width / 2,
   y: canvas.height / 2,
@@ -59,7 +66,7 @@ let bullets = [];
 let enemies = [];
 let score = 0;
 
-// 🔫 disparo
+// ===================== SHOOT =====================
 function shoot(x, y) {
   const angle = Math.atan2(y - player.y, x - player.x);
 
@@ -71,7 +78,7 @@ function shoot(x, y) {
   });
 }
 
-// 👾 enemigos
+// ===================== ENEMIES =====================
 function spawnEnemy() {
   const side = Math.random();
   let x, y;
@@ -94,28 +101,44 @@ function spawnEnemy() {
 
 setInterval(spawnEnemy, 1000);
 
-// ---------------- UPDATE ----------------
+// ===================== SAVE GLOBAL SCORE =====================
+async function saveGlobalScore(finalScore) {
+  const name = localStorage.getItem("playerName") || "Player";
+
+  const { error } = await supabase.from("leaderboard").insert([
+    {
+      name: name,
+      score: finalScore
+    }
+  ]);
+
+  if (error) {
+    console.log("Error guardando score:", error.message);
+  }
+}
+
+// ===================== UPDATE =====================
 function update() {
-  // 🧠 movimiento PC
+  // movimiento PC
   if (keys["w"]) player.y -= player.speed;
   if (keys["s"]) player.y += player.speed;
   if (keys["a"]) player.x -= player.speed;
   if (keys["d"]) player.x += player.speed;
 
-  // 📱 movimiento móvil (hacia el dedo)
+  // móvil
   if (touch.active) {
     const angle = Math.atan2(touch.y - player.y, touch.x - player.x);
     player.x += Math.cos(angle) * player.speed;
     player.y += Math.sin(angle) * player.speed;
   }
 
-  // 🔫 balas
+  // balas
   bullets.forEach(b => {
     b.x += b.dx;
     b.y += b.dy;
   });
 
-  // 👾 enemigos
+  // enemigos
   enemies.forEach(e => {
     const angle = Math.atan2(player.y - e.y, player.x - e.x);
     e.x += Math.cos(angle) * e.speed;
@@ -127,7 +150,7 @@ function update() {
     }
   });
 
-  // 💥 colisiones
+  // colisiones
   bullets.forEach((b, bi) => {
     enemies.forEach((e, ei) => {
       const dist = Math.hypot(b.x - e.x, b.y - e.y);
@@ -137,7 +160,6 @@ function update() {
         bullets.splice(bi, 1);
         score += 10;
 
-        // 🏆 actualizar best score en tiempo real
         if (score > best) {
           best = score;
           localStorage.setItem("bestScore", best);
@@ -152,24 +174,19 @@ function update() {
   document.getElementById("hp").innerText = player.hp;
 }
 
-// ---------------- DRAW ----------------
+// ===================== DRAW =====================
 function draw() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // 👤 jugador
   ctx.fillStyle = "white";
   ctx.beginPath();
   ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
   ctx.fill();
 
-  // 🔫 balas
   ctx.fillStyle = "yellow";
-  bullets.forEach(b => {
-    ctx.fillRect(b.x, b.y, 5, 5);
-  });
+  bullets.forEach(b => ctx.fillRect(b.x, b.y, 5, 5));
 
-  // 👾 enemigos
   ctx.fillStyle = "red";
   enemies.forEach(e => {
     ctx.beginPath();
@@ -178,8 +195,8 @@ function draw() {
   });
 }
 
-// ---------------- LOOP ----------------
-function gameLoop() {
+// ===================== LOOP =====================
+async function gameLoop() {
   update();
   draw();
 
@@ -188,7 +205,8 @@ function gameLoop() {
   } else {
     alert("Game Over | Score: " + score);
 
-    // 🏆 guardar récord final
+    await saveGlobalScore(score);
+
     if (score > best) {
       localStorage.setItem("bestScore", score);
     }
