@@ -5,8 +5,10 @@ const ctx = canvas.getContext("2d");
 const SUPABASE_URL = "https://mujgrjmwfeflvbutmbts.supabase.co";
 const SUPABASE_KEY = "sb_publishable_6Aw1vjP0NJ7IOF03qPc39Q_nME8oMMK";
 
-// cliente supabase (CDN)
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabase = null; // 👈 se inicializa después
+
+// ===================== ESTADO DEL JUEGO =====================
+let gameStarted = false;
 
 // ===================== RESIZE =====================
 function resize() {
@@ -30,6 +32,8 @@ document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
 // touch
 canvas.addEventListener("touchstart", (e) => {
+  if (!gameStarted) return;
+
   const t = e.touches[0];
   touch.x = t.clientX;
   touch.y = t.clientY;
@@ -39,6 +43,8 @@ canvas.addEventListener("touchstart", (e) => {
 });
 
 canvas.addEventListener("touchmove", (e) => {
+  if (!gameStarted) return;
+
   const t = e.touches[0];
   touch.x = t.clientX;
   touch.y = t.clientY;
@@ -50,13 +56,14 @@ canvas.addEventListener("touchend", () => {
 
 // click PC
 canvas.addEventListener("click", e => {
+  if (!gameStarted) return;
   shoot(e.clientX, e.clientY);
 });
 
 // ===================== GAME DATA =====================
 let player = {
-  x: canvas.width / 2,
-  y: canvas.height / 2,
+  x: 0,
+  y: 0,
   size: 20,
   speed: 4,
   hp: 100
@@ -80,6 +87,8 @@ function shoot(x, y) {
 
 // ===================== ENEMIES =====================
 function spawnEnemy() {
+  if (!gameStarted) return;
+
   const side = Math.random();
   let x, y;
 
@@ -101,9 +110,11 @@ function spawnEnemy() {
 
 setInterval(spawnEnemy, 1000);
 
-// ===================== SAVE GLOBAL SCORE =====================
+// ===================== SUPABASE SAVE =====================
 async function saveGlobalScore(finalScore) {
   const name = localStorage.getItem("playerName") || "Player";
+
+  if (!supabase) return;
 
   const { error } = await supabase.from("leaderboard").insert([
     {
@@ -117,28 +128,52 @@ async function saveGlobalScore(finalScore) {
   }
 }
 
+// ===================== START GAME =====================
+window.startGame = function () {
+  const name = document.getElementById("playerName").value || "Player";
+  const avatar = document.getElementById("playerAvatar").value || "🙂";
+
+  localStorage.setItem("playerName", name);
+  localStorage.setItem("playerAvatar", avatar);
+
+  document.getElementById("startScreen").style.display = "none";
+
+  // inicializar supabase SOLO cuando empieza el juego
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // reset estado
+  gameStarted = true;
+  score = 0;
+  player.hp = 100;
+  bullets = [];
+  enemies = [];
+
+  player.x = canvas.width / 2;
+  player.y = canvas.height / 2;
+
+  gameLoop();
+};
+
 // ===================== UPDATE =====================
 function update() {
-  // movimiento PC
+  if (!gameStarted) return;
+
   if (keys["w"]) player.y -= player.speed;
   if (keys["s"]) player.y += player.speed;
   if (keys["a"]) player.x -= player.speed;
   if (keys["d"]) player.x += player.speed;
 
-  // móvil
   if (touch.active) {
     const angle = Math.atan2(touch.y - player.y, touch.x - player.x);
     player.x += Math.cos(angle) * player.speed;
     player.y += Math.sin(angle) * player.speed;
   }
 
-  // balas
   bullets.forEach(b => {
     b.x += b.dx;
     b.y += b.dy;
   });
 
-  // enemigos
   enemies.forEach(e => {
     const angle = Math.atan2(player.y - e.y, player.x - e.x);
     e.x += Math.cos(angle) * e.speed;
@@ -150,7 +185,6 @@ function update() {
     }
   });
 
-  // colisiones
   bullets.forEach((b, bi) => {
     enemies.forEach((e, ei) => {
       const dist = Math.hypot(b.x - e.x, b.y - e.y);
@@ -169,7 +203,6 @@ function update() {
     });
   });
 
-  // UI
   document.getElementById("score").innerText = score;
   document.getElementById("hp").innerText = player.hp;
 }
@@ -197,6 +230,8 @@ function draw() {
 
 // ===================== LOOP =====================
 async function gameLoop() {
+  if (!gameStarted) return;
+
   update();
   draw();
 
@@ -214,5 +249,3 @@ async function gameLoop() {
     location.reload();
   }
 }
-
-gameLoop();
