@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: black;
+  color: white;
+  font-family: Arial;
+}
+
+#ui {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+}
