@@ -1,6 +1,16 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+// ===================== SPRITE =====================
+const playerImage = new Image();
+playerImage.src = "assets/player.png";
+
+// tamaño de frame (ajusta si tu sprite cambia)
+const FRAME_SIZE = 512;
+
+// dirección
+let playerDir = "down";
+
 // ===================== SUPABASE =====================
 const SUPABASE_URL = "https://mujgrjmwfeflvbutmbts.supabase.co";
 const SUPABASE_KEY = "sb_publishable_6Aw1vjP0NJ7IOF03qPc39Q_nME8oMMK";
@@ -29,57 +39,24 @@ resize();
 let keys = {};
 let touch = { x: 0, y: 0, active: false };
 
-// 🏆 BEST LOCAL
+// 🏆 BEST
 let best = localStorage.getItem("bestScore") || 0;
 document.getElementById("best").innerText = best;
 
-// ===================== AUTOLOAD USER =====================
-window.addEventListener("load", () => {
-  const savedName = localStorage.getItem("playerName");
-  const savedAvatar = localStorage.getItem("playerAvatar");
-
-  if (savedName) document.getElementById("playerName").value = savedName;
-  if (savedAvatar) document.getElementById("playerAvatar").value = savedAvatar;
-
-  loadMenuLeaderboard();
-});
-
-// teclado
+// ===================== INPUT =====================
 document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
 document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-// touch
-canvas.addEventListener("touchstart", (e) => {
-  if (!gameStarted) return;
-  const t = e.touches[0];
-  touch.x = t.clientX;
-  touch.y = t.clientY;
-  touch.active = true;
-  shoot(t.clientX, t.clientY);
-});
-
-canvas.addEventListener("touchmove", (e) => {
-  if (!gameStarted) return;
-  const t = e.touches[0];
-  touch.x = t.clientX;
-  touch.y = t.clientY;
-});
-
-canvas.addEventListener("touchend", () => {
-  touch.active = false;
-});
-
-// click PC
 canvas.addEventListener("click", e => {
   if (!gameStarted) return;
   shoot(e.clientX, e.clientY);
 });
 
-// ===================== GAME DATA =====================
+// ===================== PLAYER =====================
 let player = {
   x: 0,
   y: 0,
-  size: 20,
+  size: 30,
   speed: 4,
   hp: 100
 };
@@ -128,7 +105,7 @@ function spawnEnemy() {
 }
 setInterval(spawnEnemy, 1000);
 
-// ===================== POWER UP =====================
+// ===================== POWER =====================
 function spawnPowerUp() {
   powerUp = {
     x: Math.random() * canvas.width,
@@ -139,86 +116,19 @@ function spawnPowerUp() {
 }
 
 function explodePowerUp(x, y) {
-  enemies = enemies.filter(e => {
-    return Math.hypot(e.x - x, e.y - y) > 120;
-  });
-}
-
-// ===================== LEADERBOARD =====================
-async function loadGameLeaderboard() {
-  if (!supabaseClient) return;
-
-  const { data } = await supabaseClient
-    .from("leaderboard")
-    .select("*")
-    .order("score", { ascending: false })
-    .limit(5);
-
-  const board = document.getElementById("leaderboard");
-  if (!board) return;
-
-  board.innerHTML = "<h3>🏆 Top 5</h3>";
-
-  data.forEach((row, index) => {
-    const div = document.createElement("div");
-    div.innerHTML = `${index + 1}. ${row.name} - ${row.score}`;
-    board.appendChild(div);
-  });
-}
-
-async function loadMenuLeaderboard() {
-  if (!window.supabase) return;
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  const { data } = await client
-    .from("leaderboard")
-    .select("*")
-    .order("score", { ascending: false })
-    .limit(10);
-
-  const board = document.getElementById("menuLeaderboard");
-  if (!board) return;
-
-  board.innerHTML = "<h3>🏆 Ranking Global</h3>";
-
-  data.forEach((row, index) => {
-    const div = document.createElement("div");
-    div.innerHTML = `#${index + 1} ${row.name} - ${row.score}`;
-    board.appendChild(div);
-  });
-}
-
-// ===================== SAVE =====================
-async function saveGlobalScore(finalScore) {
-  const name = localStorage.getItem("playerName") || "Player";
-  const avatar = localStorage.getItem("playerAvatar") || "🙂";
-
-  if (!supabaseClient) return;
-
-  await supabaseClient.from("leaderboard").insert([
-    { name, score: finalScore, avatar }
-  ]);
+  enemies = enemies.filter(e =>
+    Math.hypot(e.x - x, e.y - y) > 120
+  );
 }
 
 // ===================== START =====================
 window.startGame = function () {
-  const name = document.getElementById("playerName").value || "Player";
-  const avatar = document.getElementById("playerAvatar").value || "🙂";
-
-  localStorage.setItem("playerName", name);
-  localStorage.setItem("playerAvatar", avatar);
-
   document.getElementById("startScreen").style.display = "none";
-
-  if (window.supabase) {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    loadGameLeaderboard();
-    leaderboardInterval = setInterval(loadGameLeaderboard, 5000);
-  }
 
   gameStarted = true;
   score = 0;
   player.hp = 100;
+
   bullets = [];
   enemies = [];
   powerUp = null;
@@ -235,59 +145,39 @@ window.startGame = function () {
 function update() {
   if (!gameStarted) return;
 
-  if (keys["w"]) player.y -= player.speed;
-  if (keys["s"]) player.y += player.speed;
-  if (keys["a"]) player.x -= player.speed;
-  if (keys["d"]) player.x += player.speed;
+  // movimiento + dirección
+  if (keys["w"]) { player.y -= player.speed; playerDir = "up"; }
+  if (keys["s"]) { player.y += player.speed; playerDir = "down"; }
+  if (keys["a"]) { player.x -= player.speed; playerDir = "left"; }
+  if (keys["d"]) { player.x += player.speed; playerDir = "right"; }
 
-  if (touch.active) {
-    const angle = Math.atan2(touch.y - player.y, touch.x - player.x);
-    player.x += Math.cos(angle) * player.speed;
-    player.y += Math.sin(angle) * player.speed;
-  }
-
+  // límites
   player.x = Math.max(0, Math.min(canvas.width, player.x));
   player.y = Math.max(0, Math.min(canvas.height, player.y));
 
+  // spawn power
   if (score >= nextPowerScore && !powerUp) {
     spawnPowerUp();
   }
 
-  if (powerUp) {
-    const angle = Math.atan2(powerUp.y - player.y, powerUp.x - player.x);
-
-    powerUp.x += Math.cos(angle) * 2;
-    powerUp.y += Math.sin(angle) * 2;
-
-    powerUp.x = Math.max(20, Math.min(canvas.width - 20, powerUp.x));
-    powerUp.y = Math.max(20, Math.min(canvas.height - 20, powerUp.y));
-  }
-
+  // bullets
   bullets.forEach(b => {
     b.x += b.dx;
     b.y += b.dy;
   });
 
+  // enemigos
   enemies.forEach(e => {
-    let target = player;
-
-    if (powerUp && Math.random() < 0.25) {
-      target = powerUp;
-    }
-
-    const angle = Math.atan2(target.y - e.y, target.x - e.x);
+    const angle = Math.atan2(player.y - e.y, player.x - e.x);
     e.x += Math.cos(angle) * e.speed;
     e.y += Math.sin(angle) * e.speed;
 
     if (Math.hypot(player.x - e.x, player.y - e.y) < player.size) {
       player.hp -= 1;
     }
-
-    if (powerUp && Math.hypot(powerUp.x - e.x, powerUp.y - e.y) < powerUp.size) {
-      powerUp.hp -= 1;
-    }
   });
 
+  // colisiones
   bullets = bullets.filter(b => {
     let hit = false;
 
@@ -310,34 +200,40 @@ function update() {
     return !hit;
   });
 
+  // recoger power
   if (powerUp && Math.hypot(player.x - powerUp.x, player.y - powerUp.y) < 30) {
     powerActive = true;
     powerEndTime = Date.now() + 25000;
 
     explodePowerUp(powerUp.x, powerUp.y);
-
     powerUp = null;
     nextPowerScore = score + 400;
   }
 
-  if (powerUp && powerUp.hp <= 0) {
-    explodePowerUp(powerUp.x, powerUp.y);
-    powerUp = null;
-    nextPowerScore = score + 400;
-  }
-
+  // fin power
   if (powerActive && Date.now() > powerEndTime) {
     powerActive = false;
   }
 
-  // 🟢 CONTADOR VISUAL
-  const powerUI = document.getElementById("powerTimer");
+  // 🟢 UI POWER
+  const powerUI = document.getElementById("powerUI");
+
   if (powerActive) {
     const seconds = Math.max(0, Math.floor((powerEndTime - Date.now()) / 1000));
-    powerUI.innerText = `Power: ${seconds}s`;
+
+    powerUI.innerText = `⚡ Power: ${seconds}s`;
     powerUI.style.display = "block";
+
+    // 🔴 estado crítico
+    if (seconds <= 5) {
+      powerUI.classList.add("danger");
+    } else {
+      powerUI.classList.remove("danger");
+    }
+
   } else {
     powerUI.style.display = "none";
+    powerUI.classList.remove("danger");
   }
 
   document.getElementById("score").innerText = score;
@@ -349,6 +245,7 @@ function draw() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // aura
   if (powerActive) {
     ctx.fillStyle = "rgba(0,255,0,0.25)";
     ctx.beginPath();
@@ -356,14 +253,28 @@ function draw() {
     ctx.fill();
   }
 
-  ctx.fillStyle = "white";
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
-  ctx.fill();
+  // 🎮 SPRITE
+  let sx = 0, sy = 0;
 
+  if (playerDir === "down") { sx = 0; sy = 0; }
+  if (playerDir === "up") { sx = FRAME_SIZE; sy = 0; }
+  if (playerDir === "left") { sx = 0; sy = FRAME_SIZE; }
+  if (playerDir === "right") { sx = FRAME_SIZE; sy = FRAME_SIZE; }
+
+  ctx.drawImage(
+    playerImage,
+    sx, sy, FRAME_SIZE, FRAME_SIZE,
+    player.x - player.size,
+    player.y - player.size,
+    player.size * 2,
+    player.size * 2
+  );
+
+  // balas
   ctx.fillStyle = "yellow";
   bullets.forEach(b => ctx.fillRect(b.x, b.y, 5, 5));
 
+  // enemigos
   ctx.fillStyle = "red";
   enemies.forEach(e => {
     ctx.beginPath();
@@ -371,6 +282,7 @@ function draw() {
     ctx.fill();
   });
 
+  // power
   if (powerUp) {
     ctx.fillStyle = "lime";
     ctx.beginPath();
@@ -380,7 +292,7 @@ function draw() {
 }
 
 // ===================== LOOP =====================
-async function gameLoop() {
+function gameLoop() {
   if (!gameStarted) return;
 
   update();
@@ -390,7 +302,6 @@ async function gameLoop() {
     requestAnimationFrame(gameLoop);
   } else {
     alert("Game Over | Score: " + score);
-    await saveGlobalScore(score);
     location.reload();
   }
 }

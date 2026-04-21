@@ -55,11 +55,12 @@ canvas {
   color: #00ff88;
   font-size: 14px;
   font-weight: bold;
+  text-align: center; /* 🔥 evita saltos */
 
   background: rgba(0,255,0,0.12);
   border: 1px solid rgba(0,255,0,0.4);
 
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-radius: 12px;
 
   z-index: 20;
@@ -71,6 +72,8 @@ canvas {
   box-shadow: 0 0 10px rgba(0,255,0,0.3);
 
   animation: powerGlow 1s infinite alternate;
+
+  min-width: 110px; /* 🔥 evita resize al cambiar número */
 }
 
 /* 🔴 estado crítico (últimos segundos) */
