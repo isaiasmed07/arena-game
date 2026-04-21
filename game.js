@@ -3,9 +3,17 @@ const ctx = canvas.getContext("2d");
 
 // ===================== SPRITE =====================
 const playerImage = new Image();
-playerImage.src = "assets/player.png";
+playerImage.src = "./assets/player.png"; // ⚠️ IMPORTANTE: ruta relativa correcta
 
-// tamaño de frame (ajusta si tu sprite cambia)
+let spriteLoaded = false;
+playerImage.onload = () => {
+  spriteLoaded = true;
+};
+playerImage.onerror = () => {
+  console.warn("⚠️ Sprite no encontrado, usando fallback");
+};
+
+// tamaño de frame
 const FRAME_SIZE = 512;
 
 // dirección
@@ -43,10 +51,29 @@ let touch = { x: 0, y: 0, active: false };
 let best = localStorage.getItem("bestScore") || 0;
 document.getElementById("best").innerText = best;
 
-// ===================== INPUT =====================
-document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
-document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+// ===================== AUTOLOAD USER =====================
+window.addEventListener("load", () => {
+  const savedName = localStorage.getItem("playerName");
+  const savedAvatar = localStorage.getItem("playerAvatar");
 
+  if (savedName) document.getElementById("playerName").value = savedName;
+  if (savedAvatar) document.getElementById("playerAvatar").value = savedAvatar;
+
+  loadMenuLeaderboard();
+});
+
+// ===================== INPUT =====================
+document.addEventListener("keydown", e => {
+  if (!e.key) return;
+  keys[e.key.toLowerCase()] = true;
+});
+
+document.addEventListener("keyup", e => {
+  if (!e.key) return;
+  keys[e.key.toLowerCase()] = false;
+});
+
+// click
 canvas.addEventListener("click", e => {
   if (!gameStarted) return;
   shoot(e.clientX, e.clientY);
@@ -121,8 +148,45 @@ function explodePowerUp(x, y) {
   );
 }
 
+// ===================== LEADERBOARD =====================
+async function loadMenuLeaderboard() {
+  try {
+    if (!window.supabase) return;
+
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const { data } = await client
+      .from("leaderboard")
+      .select("*")
+      .order("score", { ascending: false })
+      .limit(10);
+
+    const board = document.getElementById("menuLeaderboard");
+    if (!board) return;
+
+    board.innerHTML = "<h3>🏆 Ranking Global</h3>";
+
+    data.forEach((row, index) => {
+      const div = document.createElement("div");
+      div.innerHTML = `#${index + 1} ${row.name} - ${row.score}`;
+      board.appendChild(div);
+    });
+
+  } catch (err) {
+    console.warn("Leaderboard error:", err);
+  }
+}
+
 // ===================== START =====================
 window.startGame = function () {
+
+  // guardar usuario
+  const name = document.getElementById("playerName").value || "Player";
+  const avatar = document.getElementById("playerAvatar").value || "🙂";
+
+  localStorage.setItem("playerName", name);
+  localStorage.setItem("playerAvatar", avatar);
+
   document.getElementById("startScreen").style.display = "none";
 
   gameStarted = true;
@@ -145,7 +209,7 @@ window.startGame = function () {
 function update() {
   if (!gameStarted) return;
 
-  // movimiento + dirección
+  // movimiento
   if (keys["w"]) { player.y -= player.speed; playerDir = "up"; }
   if (keys["s"]) { player.y += player.speed; playerDir = "down"; }
   if (keys["a"]) { player.x -= player.speed; playerDir = "left"; }
@@ -224,7 +288,6 @@ function update() {
     powerUI.innerText = `⚡ Power: ${seconds}s`;
     powerUI.style.display = "block";
 
-    // 🔴 estado crítico
     if (seconds <= 5) {
       powerUI.classList.add("danger");
     } else {
@@ -253,22 +316,30 @@ function draw() {
     ctx.fill();
   }
 
-  // 🎮 SPRITE
-  let sx = 0, sy = 0;
+  // 🎮 SPRITE o fallback
+  if (spriteLoaded) {
+    let sx = 0, sy = 0;
 
-  if (playerDir === "down") { sx = 0; sy = 0; }
-  if (playerDir === "up") { sx = FRAME_SIZE; sy = 0; }
-  if (playerDir === "left") { sx = 0; sy = FRAME_SIZE; }
-  if (playerDir === "right") { sx = FRAME_SIZE; sy = FRAME_SIZE; }
+    if (playerDir === "down") { sx = 0; sy = 0; }
+    if (playerDir === "up") { sx = FRAME_SIZE; sy = 0; }
+    if (playerDir === "left") { sx = 0; sy = FRAME_SIZE; }
+    if (playerDir === "right") { sx = FRAME_SIZE; sy = FRAME_SIZE; }
 
-  ctx.drawImage(
-    playerImage,
-    sx, sy, FRAME_SIZE, FRAME_SIZE,
-    player.x - player.size,
-    player.y - player.size,
-    player.size * 2,
-    player.size * 2
-  );
+    ctx.drawImage(
+      playerImage,
+      sx, sy, FRAME_SIZE, FRAME_SIZE,
+      player.x - player.size,
+      player.y - player.size,
+      player.size * 2,
+      player.size * 2
+    );
+  } else {
+    // fallback círculo
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // balas
   ctx.fillStyle = "yellow";
