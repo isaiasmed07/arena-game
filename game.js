@@ -5,7 +5,7 @@ const ctx = canvas.getContext("2d");
 const SUPABASE_URL = "https://mujgrjmwfeflvbutmbts.supabase.co";
 const SUPABASE_KEY = "sb_publishable_6Aw1vjP0NJ7IOF03qPc39Q_nME8oMMK";
 
-let supabase = null;
+let supabaseClient = null;
 
 // ===================== ESTADO =====================
 let gameStarted = false;
@@ -114,9 +114,9 @@ setInterval(spawnEnemy, 1000);
 async function saveGlobalScore(finalScore) {
   const name = localStorage.getItem("playerName") || "Player";
 
-  if (!supabase) return;
+  if (!supabaseClient) return;
 
-  const { error } = await supabase.from("leaderboard").insert([
+  const { error } = await supabaseClient.from("leaderboard").insert([
     {
       name: name,
       score: finalScore
@@ -140,7 +140,7 @@ window.startGame = function () {
 
   // ⚡ Supabase seguro (evita crash si CDN no carga aún)
   if (window.supabase && window.supabase.createClient) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   } else {
     console.warn("Supabase aún no disponible, leaderboard desactivado temporalmente");
   }
