@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="style.css">
 
   <style>
-    /* 🏆 Leaderboard estilo simple pero visible */
+    /* 🎮 Leaderboard dentro del juego (TOP 5) */
     #leaderboard {
       position: absolute;
       top: 10px;
@@ -18,14 +18,61 @@
       color: white;
       padding: 10px;
       border-radius: 8px;
-      font-size: 14px;
-      min-width: 150px;
+      font-size: 13px;
+      min-width: 140px;
+      z-index: 10;
     }
 
     #leaderboard h3 {
-      margin: 0 0 5px 0;
-      font-size: 16px;
+      margin: 0 0 6px 0;
+      font-size: 14px;
       text-align: center;
+      color: gold;
+    }
+
+    /* 🏠 Leaderboard del menú */
+    .menu-board {
+      margin-top: 15px;
+      max-height: 220px;
+      overflow-y: auto;
+      text-align: left;
+    }
+
+    .menu-board div {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      margin: 4px 0;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .menu-board .rank {
+      color: gold;
+      width: 30px;
+      font-weight: bold;
+    }
+
+    .menu-board .name {
+      flex: 1;
+      margin-left: 5px;
+    }
+
+    .menu-board .score {
+      font-weight: bold;
+    }
+
+    /* 👤 Avatar */
+    .avatar-img {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      margin: 0 5px;
+    }
+
+    .avatar-emoji {
+      margin: 0 5px;
     }
   </style>
 </head>
@@ -38,10 +85,14 @@
       <h1>🔥 Arena Survival</h1>
 
       <input id="playerName" type="text" placeholder="Tu nombre">
-
       <input id="playerAvatar" type="text" placeholder="Avatar (emoji o URL)">
 
       <button onclick="startGame()">JUGAR</button>
+
+      <!-- 🏆 LEADERBOARD EN MENÚ -->
+      <div id="menuLeaderboard" class="menu-board">
+        <!-- Se llena dinámicamente -->
+      </div>
     </div>
   </div>
 
@@ -55,10 +106,9 @@
     <p>Best: <span id="best">0</span></p>
   </div>
 
-  <!-- 🏆 LEADERBOARD GLOBAL -->
+  <!-- 🏆 LEADERBOARD EN JUEGO -->
   <div id="leaderboard">
-    <h3>🏆 Top 10</h3>
-    <!-- Aquí se llenará dinámicamente -->
+    <h3>🏆 Top 5</h3>
   </div>
 
   <!-- ===================== LIBRERÍAS ===================== -->

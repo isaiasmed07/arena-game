@@ -45,41 +45,52 @@ canvas {
   font-weight: bold;
 }
 
-/* 🏆 LEADERBOARD GLOBAL */
+/* 🏆 LEADERBOARD JUEGO (TOP 5) */
 #leaderboard {
   position: fixed;
   top: 10px;
   right: 10px;
 
   color: white;
-  font-size: 14px;
+  font-size: 13px;
   z-index: 10;
 
   background: rgba(0,0,0,0.65);
-  padding: 12px;
+  padding: 10px;
   border-radius: 10px;
 
-  min-width: 180px;
+  min-width: 150px;
   backdrop-filter: blur(6px);
 
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
 }
 
 #leaderboard h3 {
-  margin: 0 0 8px 0;
-  font-size: 15px;
+  margin: 0 0 6px 0;
+  font-size: 14px;
   text-align: center;
   color: gold;
 }
 
-/* filas del ranking */
+/* filas */
 #leaderboard div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
   padding: 4px 6px;
   border-radius: 6px;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
+
+  transition: 0.2s;
 }
 
-/* top 1, 2, 3 estilos */
+/* hover leve */
+#leaderboard div:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+/* top 1,2,3 */
 #leaderboard div:nth-child(2) {
   color: gold;
   font-weight: bold;
@@ -90,7 +101,106 @@ canvas {
 }
 
 #leaderboard div:nth-child(4) {
-  color: #cd7f32; /* bronce */
+  color: #cd7f32;
+}
+
+/* 🏠 LEADERBOARD MENU */
+.menu-board {
+  margin-top: 15px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* scrollbar bonita */
+.menu-board::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu-board::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+}
+
+/* filas menu */
+.menu-board div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 6px 8px;
+  margin: 4px 0;
+  border-radius: 6px;
+
+  background: rgba(255,255,255,0.05);
+
+  transition: 0.2s;
+}
+
+.menu-board div:hover {
+  transform: scale(1.02);
+  background: rgba(255,255,255,0.1);
+}
+
+/* ranking */
+.menu-board .rank {
+  color: gold;
+  width: 30px;
+  font-weight: bold;
+}
+
+/* nombre */
+.menu-board .name {
+  flex: 1;
+  margin-left: 6px;
+}
+
+/* score */
+.menu-board .score {
+  font-weight: bold;
+}
+
+/* 🥇 top destacados */
+.menu-board div:nth-child(2) {
+  color: gold;
+  font-weight: bold;
+}
+
+.menu-board div:nth-child(3) {
+  color: silver;
+}
+
+.menu-board div:nth-child(4) {
+  color: #cd7f32;
+}
+
+/* 👤 AVATAR */
+.avatar-img {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* ✨ ANIMACIÓN entrada top */
+@keyframes popIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.menu-board div,
+#leaderboard div {
+  animation: popIn 0.25s ease;
 }
 
 /* 🎮 PANTALLA DE INICIO */
@@ -170,7 +280,7 @@ canvas {
     top: 5px;
     right: 5px;
     font-size: 12px;
-    min-width: 140px;
+    min-width: 130px;
   }
 
   .panel {

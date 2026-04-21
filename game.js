@@ -27,6 +27,18 @@ let touch = { x: 0, y: 0, active: false };
 let best = localStorage.getItem("bestScore") || 0;
 document.getElementById("best").innerText = best;
 
+// ===================== AUTOLOAD USER =====================
+window.addEventListener("load", () => {
+  const savedName = localStorage.getItem("playerName");
+  const savedAvatar = localStorage.getItem("playerAvatar");
+
+  if (savedName) document.getElementById("playerName").value = savedName;
+  if (savedAvatar) document.getElementById("playerAvatar").value = savedAvatar;
+
+  // 🔥 cargar leaderboard del menú
+  loadMenuLeaderboard();
+});
+
 // teclado
 document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
 document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
@@ -111,25 +123,60 @@ function spawnEnemy() {
 
 setInterval(spawnEnemy, 1000);
 
-// ===================== LEADERBOARD =====================
-async function loadGlobalLeaderboard() {
+// ===================== LEADERBOARD GAME (TOP 5) =====================
+async function loadGameLeaderboard() {
   if (!supabaseClient) return;
 
   const { data, error } = await supabaseClient
     .from("leaderboard")
     .select("*")
     .order("score", { ascending: false })
-    .limit(10);
+    .limit(5);
 
   if (error) {
-    console.log("Error cargando leaderboard:", error.message);
+    console.log("Error leaderboard game:", error.message);
     return;
   }
 
   const board = document.getElementById("leaderboard");
   if (!board) return;
 
-  board.innerHTML = "<h3>🏆 Top 10</h3>";
+  board.innerHTML = "<h3>🏆 Top 5</h3>";
+
+  data.forEach((row, index) => {
+    const div = document.createElement("div");
+
+    let avatarHTML = "🙂";
+
+    if (row.avatar) {
+      if (row.avatar.startsWith("http")) {
+        avatarHTML = `<img src="${row.avatar}" class="avatar-img">`;
+      } else {
+        avatarHTML = `<span class="avatar-emoji">${row.avatar}</span>`;
+      }
+    }
+
+    div.innerHTML = `${avatarHTML} ${index + 1}. ${row.name} - ${row.score}`;
+    board.appendChild(div);
+  });
+}
+
+// ===================== LEADERBOARD MENU (TOP 10) =====================
+async function loadMenuLeaderboard() {
+  if (!window.supabase) return;
+
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const { data } = await client
+    .from("leaderboard")
+    .select("*")
+    .order("score", { ascending: false })
+    .limit(10);
+
+  const board = document.getElementById("menuLeaderboard");
+  if (!board) return;
+
+  board.innerHTML = "<h3>🏆 Ranking Global</h3>";
 
   data.forEach((row, index) => {
     const div = document.createElement("div");
@@ -145,32 +192,26 @@ async function loadGlobalLeaderboard() {
     }
 
     div.innerHTML = `
+      <span class="rank">#${index + 1}</span>
       ${avatarHTML}
-      ${index + 1}. ${row.name} - ${row.score}
+      <span class="name">${row.name}</span>
+      <span class="score">${row.score}</span>
     `;
 
     board.appendChild(div);
   });
 }
 
-// ===================== SUPABASE SAVE =====================
+// ===================== SAVE =====================
 async function saveGlobalScore(finalScore) {
   const name = localStorage.getItem("playerName") || "Player";
   const avatar = localStorage.getItem("playerAvatar") || "🙂";
 
   if (!supabaseClient) return;
 
-  const { error } = await supabaseClient.from("leaderboard").insert([
-    {
-      name: name,
-      score: finalScore,
-      avatar: avatar
-    }
+  await supabaseClient.from("leaderboard").insert([
+    { name, score: finalScore, avatar }
   ]);
-
-  if (error) {
-    console.log("Error guardando score:", error.message);
-  }
 }
 
 // ===================== START GAME =====================
@@ -186,10 +227,8 @@ window.startGame = function () {
   if (window.supabase && window.supabase.createClient) {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    loadGlobalLeaderboard();
-    leaderboardInterval = setInterval(loadGlobalLeaderboard, 5000);
-  } else {
-    console.warn("Supabase no disponible");
+    loadGameLeaderboard();
+    leaderboardInterval = setInterval(loadGameLeaderboard, 5000);
   }
 
   gameStarted = true;
@@ -229,17 +268,14 @@ function update() {
     e.x += Math.cos(angle) * e.speed;
     e.y += Math.sin(angle) * e.speed;
 
-    const dist = Math.hypot(player.x - e.x, player.y - e.y);
-    if (dist < player.size) {
+    if (Math.hypot(player.x - e.x, player.y - e.y) < player.size) {
       player.hp -= 1;
     }
   });
 
   bullets.forEach((b, bi) => {
     enemies.forEach((e, ei) => {
-      const dist = Math.hypot(b.x - e.x, b.y - e.y);
-
-      if (dist < e.size) {
+      if (Math.hypot(b.x - e.x, b.y - e.y) < e.size) {
         enemies.splice(ei, 1);
         bullets.splice(bi, 1);
         score += 10;
