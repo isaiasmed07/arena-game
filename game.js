@@ -129,11 +129,26 @@ async function loadGlobalLeaderboard() {
   const board = document.getElementById("leaderboard");
   if (!board) return;
 
-  board.innerHTML = "";
+  board.innerHTML = "<h3>🏆 Top 10</h3>";
 
   data.forEach((row, index) => {
     const div = document.createElement("div");
-    div.textContent = `${index + 1}. ${row.name} - ${row.score}`;
+
+    let avatarHTML = "🙂";
+
+    if (row.avatar) {
+      if (row.avatar.startsWith("http")) {
+        avatarHTML = `<img src="${row.avatar}" class="avatar-img">`;
+      } else {
+        avatarHTML = `<span class="avatar-emoji">${row.avatar}</span>`;
+      }
+    }
+
+    div.innerHTML = `
+      ${avatarHTML}
+      ${index + 1}. ${row.name} - ${row.score}
+    `;
+
     board.appendChild(div);
   });
 }
@@ -141,13 +156,15 @@ async function loadGlobalLeaderboard() {
 // ===================== SUPABASE SAVE =====================
 async function saveGlobalScore(finalScore) {
   const name = localStorage.getItem("playerName") || "Player";
+  const avatar = localStorage.getItem("playerAvatar") || "🙂";
 
   if (!supabaseClient) return;
 
   const { error } = await supabaseClient.from("leaderboard").insert([
     {
       name: name,
-      score: finalScore
+      score: finalScore,
+      avatar: avatar
     }
   ]);
 
@@ -169,17 +186,12 @@ window.startGame = function () {
   if (window.supabase && window.supabase.createClient) {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 🔥 cargar leaderboard inmediatamente
     loadGlobalLeaderboard();
-
-    // 🔥 actualizar cada 5 segundos (pseudo realtime)
     leaderboardInterval = setInterval(loadGlobalLeaderboard, 5000);
-
   } else {
     console.warn("Supabase no disponible");
   }
 
-  // reset juego
   gameStarted = true;
   score = 0;
   player.hp = 100;
