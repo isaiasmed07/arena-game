@@ -9,6 +9,7 @@ let supabaseClient = null;
 
 // ===================== ESTADO =====================
 let gameStarted = false;
+let leaderboardInterval = null;
 
 // ===================== RESIZE =====================
 function resize() {
@@ -110,6 +111,33 @@ function spawnEnemy() {
 
 setInterval(spawnEnemy, 1000);
 
+// ===================== LEADERBOARD =====================
+async function loadGlobalLeaderboard() {
+  if (!supabaseClient) return;
+
+  const { data, error } = await supabaseClient
+    .from("leaderboard")
+    .select("*")
+    .order("score", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.log("Error cargando leaderboard:", error.message);
+    return;
+  }
+
+  const board = document.getElementById("leaderboard");
+  if (!board) return;
+
+  board.innerHTML = "";
+
+  data.forEach((row, index) => {
+    const div = document.createElement("div");
+    div.textContent = `${index + 1}. ${row.name} - ${row.score}`;
+    board.appendChild(div);
+  });
+}
+
 // ===================== SUPABASE SAVE =====================
 async function saveGlobalScore(finalScore) {
   const name = localStorage.getItem("playerName") || "Player";
@@ -138,11 +166,17 @@ window.startGame = function () {
 
   document.getElementById("startScreen").style.display = "none";
 
-  // ⚡ Supabase seguro (evita crash si CDN no carga aún)
   if (window.supabase && window.supabase.createClient) {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 🔥 cargar leaderboard inmediatamente
+    loadGlobalLeaderboard();
+
+    // 🔥 actualizar cada 5 segundos (pseudo realtime)
+    leaderboardInterval = setInterval(loadGlobalLeaderboard, 5000);
+
   } else {
-    console.warn("Supabase aún no disponible, leaderboard desactivado temporalmente");
+    console.warn("Supabase no disponible");
   }
 
   // reset juego

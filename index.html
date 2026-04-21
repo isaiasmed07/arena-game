@@ -7,6 +7,27 @@
   <title>Arena Survival</title>
 
   <link rel="stylesheet" href="style.css">
+
+  <style>
+    /* 🏆 Leaderboard estilo simple pero visible */
+    #leaderboard {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      min-width: 150px;
+    }
+
+    #leaderboard h3 {
+      margin: 0 0 5px 0;
+      font-size: 16px;
+      text-align: center;
+    }
+  </style>
 </head>
 
 <body>
@@ -34,9 +55,15 @@
     <p>Best: <span id="best">0</span></p>
   </div>
 
+  <!-- 🏆 LEADERBOARD GLOBAL -->
+  <div id="leaderboard">
+    <h3>🏆 Top 10</h3>
+    <!-- Aquí se llenará dinámicamente -->
+  </div>
+
   <!-- ===================== LIBRERÍAS ===================== -->
 
-  <!-- ⚡ Supabase (OBLIGATORIO antes del juego) -->
+  <!-- ⚡ Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <!-- 🎮 Juego -->

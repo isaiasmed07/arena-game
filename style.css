@@ -45,6 +45,54 @@ canvas {
   font-weight: bold;
 }
 
+/* 🏆 LEADERBOARD GLOBAL */
+#leaderboard {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+
+  color: white;
+  font-size: 14px;
+  z-index: 10;
+
+  background: rgba(0,0,0,0.65);
+  padding: 12px;
+  border-radius: 10px;
+
+  min-width: 180px;
+  backdrop-filter: blur(6px);
+
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+}
+
+#leaderboard h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  text-align: center;
+  color: gold;
+}
+
+/* filas del ranking */
+#leaderboard div {
+  padding: 4px 6px;
+  border-radius: 6px;
+  margin-bottom: 2px;
+}
+
+/* top 1, 2, 3 estilos */
+#leaderboard div:nth-child(2) {
+  color: gold;
+  font-weight: bold;
+}
+
+#leaderboard div:nth-child(3) {
+  color: silver;
+}
+
+#leaderboard div:nth-child(4) {
+  color: #cd7f32; /* bronce */
+}
+
 /* 🎮 PANTALLA DE INICIO */
 #startScreen {
   position: fixed;
@@ -116,6 +164,13 @@ canvas {
     font-size: 14px;
     top: 5px;
     left: 5px;
+  }
+
+  #leaderboard {
+    top: 5px;
+    right: 5px;
+    font-size: 12px;
+    min-width: 140px;
   }
 
   .panel {
