@@ -24,7 +24,6 @@ let supabaseClient = null;
 
 // ===================== ESTADO =====================
 let gameStarted = false;
-let leaderboardInterval = null;
 
 // 🟢 POWER SYSTEM
 let powerUp = null;
@@ -56,6 +55,11 @@ window.addEventListener("load", () => {
   if (savedName) document.getElementById("playerName").value = savedName;
   if (savedAvatar) document.getElementById("playerAvatar").value = savedAvatar;
 
+  // ✅ inicializar supabase
+  if (window.supabase) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+
   loadMenuLeaderboard();
 });
 
@@ -76,7 +80,7 @@ canvas.addEventListener("click", e => {
   shoot(e.clientX, e.clientY);
 });
 
-// ===================== TOUCH CONTROLS =====================
+// ===================== TOUCH =====================
 canvas.addEventListener("touchstart", (e) => {
   if (!gameStarted) return;
 
@@ -169,14 +173,28 @@ function explodePowerUp(x, y) {
   );
 }
 
+// ===================== SAVE SCORE =====================
+async function saveScore() {
+  if (!supabaseClient) return;
+
+  const name = localStorage.getItem("playerName") || "Player";
+  const avatar = localStorage.getItem("playerAvatar") || "🙂";
+
+  try {
+    await supabaseClient.from("leaderboard").insert([
+      { name, score, avatar }
+    ]);
+  } catch (err) {
+    console.warn("Error guardando score:", err);
+  }
+}
+
 // ===================== LEADERBOARD =====================
 async function loadMenuLeaderboard() {
   try {
-    if (!window.supabase) return;
+    if (!supabaseClient) return;
 
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    const { data } = await client
+    const { data } = await supabaseClient
       .from("leaderboard")
       .select("*")
       .order("score", { ascending: false })
@@ -189,7 +207,18 @@ async function loadMenuLeaderboard() {
 
     data.forEach((row, index) => {
       const div = document.createElement("div");
-      div.innerHTML = `#${index + 1} ${row.name} - ${row.score}`;
+
+      const avatarHTML = row.avatar?.startsWith("http")
+        ? `<img src="${row.avatar}" class="avatar-img">`
+        : `<span class="avatar-emoji">${row.avatar}</span>`;
+
+      div.innerHTML = `
+        <span class="rank">#${index + 1}</span>
+        ${avatarHTML}
+        <span class="name">${row.name}</span>
+        <span class="score">${row.score}</span>
+      `;
+
       board.appendChild(div);
     });
 
@@ -235,14 +264,13 @@ function update() {
   if (keys["a"]) { player.x -= player.speed; playerDir = "left"; }
   if (keys["d"]) { player.x += player.speed; playerDir = "right"; }
 
-  // 🔥 MOVIMIENTO TOUCH
+  // 🔥 TOUCH MOVEMENT
   if (touch.active) {
     const angle = Math.atan2(touch.y - player.y, touch.x - player.x);
 
     player.x += Math.cos(angle) * player.speed;
     player.y += Math.sin(angle) * player.speed;
 
-    // dirección sprite
     if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
       playerDir = Math.cos(angle) > 0 ? "right" : "left";
     } else {
@@ -259,6 +287,14 @@ function update() {
     spawnPowerUp();
   }
 
+  // 🔥 POWER SE MUEVE (HUYE)
+  if (powerUp) {
+    const angle = Math.atan2(powerUp.y - player.y, powerUp.x - player.x);
+
+    powerUp.x += Math.cos(angle) * 2;
+    powerUp.y += Math.sin(angle) * 2;
+  }
+
   // bullets
   bullets.forEach(b => {
     b.x += b.dx;
@@ -267,12 +303,24 @@ function update() {
 
   // enemigos
   enemies.forEach(e => {
-    const angle = Math.atan2(player.y - e.y, player.x - e.x);
+
+    let target = player;
+
+    // 🧠 IA: atacar power
+    if (powerUp && Math.random() < 0.25) {
+      target = powerUp;
+    }
+
+    const angle = Math.atan2(target.y - e.y, target.x - e.x);
     e.x += Math.cos(angle) * e.speed;
     e.y += Math.sin(angle) * e.speed;
 
     if (Math.hypot(player.x - e.x, player.y - e.y) < player.size) {
       player.hp -= 1;
+    }
+
+    if (powerUp && Math.hypot(powerUp.x - e.x, powerUp.y - e.y) < powerUp.size) {
+      powerUp.hp -= 1;
     }
   });
 
@@ -309,29 +357,15 @@ function update() {
     nextPowerScore = score + 400;
   }
 
+  if (powerUp && powerUp.hp <= 0) {
+    explodePowerUp(powerUp.x, powerUp.y);
+    powerUp = null;
+    nextPowerScore = score + 400;
+  }
+
   // fin power
   if (powerActive && Date.now() > powerEndTime) {
     powerActive = false;
-  }
-
-  // UI POWER
-  const powerUI = document.getElementById("powerUI");
-
-  if (powerActive) {
-    const seconds = Math.max(0, Math.floor((powerEndTime - Date.now()) / 1000));
-
-    powerUI.innerText = `⚡ Power: ${seconds}s`;
-    powerUI.style.display = "block";
-
-    if (seconds <= 5) {
-      powerUI.classList.add("danger");
-    } else {
-      powerUI.classList.remove("danger");
-    }
-
-  } else {
-    powerUI.style.display = "none";
-    powerUI.classList.remove("danger");
   }
 
   document.getElementById("score").innerText = score;
@@ -392,7 +426,7 @@ function draw() {
 }
 
 // ===================== LOOP =====================
-function gameLoop() {
+async function gameLoop() {
   if (!gameStarted) return;
 
   update();
@@ -402,6 +436,9 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
   } else {
     alert("Game Over | Score: " + score);
+
+    await saveScore(); // ✅ AHORA SÍ GUARDA
+
     location.reload();
   }
 }
