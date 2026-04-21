@@ -73,12 +73,30 @@ canvas {
   animation: powerGlow 1s infinite alternate;
 }
 
+/* 🔴 estado crítico (últimos segundos) */
+#powerUI.danger {
+  color: #ff4444;
+  border: 1px solid rgba(255,0,0,0.6);
+  background: rgba(255,0,0,0.15);
+
+  animation: powerDanger 0.5s infinite alternate;
+}
+
 @keyframes powerGlow {
   from {
     box-shadow: 0 0 10px rgba(0,255,0,0.3);
   }
   to {
     box-shadow: 0 0 20px rgba(0,255,0,0.7);
+  }
+}
+
+@keyframes powerDanger {
+  from {
+    box-shadow: 0 0 10px rgba(255,0,0,0.3);
+  }
+  to {
+    box-shadow: 0 0 25px rgba(255,0,0,0.9);
   }
 }
 
@@ -243,7 +261,7 @@ canvas {
   animation: popIn 0.25s ease;
 }
 
-/* 🟢 efecto power-up (extra si lo usas en JS) */
+/* 🟢 efecto power-up */
 .powerup-active {
   box-shadow: 0 0 25px lime;
 }

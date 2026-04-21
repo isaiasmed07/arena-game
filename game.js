@@ -235,47 +235,39 @@ window.startGame = function () {
 function update() {
   if (!gameStarted) return;
 
-  // movimiento
   if (keys["w"]) player.y -= player.speed;
   if (keys["s"]) player.y += player.speed;
   if (keys["a"]) player.x -= player.speed;
   if (keys["d"]) player.x += player.speed;
 
-  // touch move
   if (touch.active) {
     const angle = Math.atan2(touch.y - player.y, touch.x - player.x);
     player.x += Math.cos(angle) * player.speed;
     player.y += Math.sin(angle) * player.speed;
   }
 
-  // limitar jugador
   player.x = Math.max(0, Math.min(canvas.width, player.x));
   player.y = Math.max(0, Math.min(canvas.height, player.y));
 
-  // spawn power
   if (score >= nextPowerScore && !powerUp) {
     spawnPowerUp();
   }
 
-  // power huye del jugador
   if (powerUp) {
     const angle = Math.atan2(powerUp.y - player.y, powerUp.x - player.x);
 
     powerUp.x += Math.cos(angle) * 2;
     powerUp.y += Math.sin(angle) * 2;
 
-    // mantener en pantalla
     powerUp.x = Math.max(20, Math.min(canvas.width - 20, powerUp.x));
     powerUp.y = Math.max(20, Math.min(canvas.height - 20, powerUp.y));
   }
 
-  // bullets
   bullets.forEach(b => {
     b.x += b.dx;
     b.y += b.dy;
   });
 
-  // enemies
   enemies.forEach(e => {
     let target = player;
 
@@ -296,7 +288,6 @@ function update() {
     }
   });
 
-  // colisiones seguras
   bullets = bullets.filter(b => {
     let hit = false;
 
@@ -319,7 +310,6 @@ function update() {
     return !hit;
   });
 
-  // recoger power
   if (powerUp && Math.hypot(player.x - powerUp.x, player.y - powerUp.y) < 30) {
     powerActive = true;
     powerEndTime = Date.now() + 25000;
@@ -330,16 +320,24 @@ function update() {
     nextPowerScore = score + 400;
   }
 
-  // destruir power
   if (powerUp && powerUp.hp <= 0) {
     explodePowerUp(powerUp.x, powerUp.y);
     powerUp = null;
     nextPowerScore = score + 400;
   }
 
-  // timer buff
   if (powerActive && Date.now() > powerEndTime) {
     powerActive = false;
+  }
+
+  // 🟢 CONTADOR VISUAL
+  const powerUI = document.getElementById("powerTimer");
+  if (powerActive) {
+    const seconds = Math.max(0, Math.floor((powerEndTime - Date.now()) / 1000));
+    powerUI.innerText = `Power: ${seconds}s`;
+    powerUI.style.display = "block";
+  } else {
+    powerUI.style.display = "none";
   }
 
   document.getElementById("score").innerText = score;
@@ -351,7 +349,6 @@ function draw() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // aura buff
   if (powerActive) {
     ctx.fillStyle = "rgba(0,255,0,0.25)";
     ctx.beginPath();
@@ -359,17 +356,14 @@ function draw() {
     ctx.fill();
   }
 
-  // player
   ctx.fillStyle = "white";
   ctx.beginPath();
   ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
   ctx.fill();
 
-  // bullets
   ctx.fillStyle = "yellow";
   bullets.forEach(b => ctx.fillRect(b.x, b.y, 5, 5));
 
-  // enemies
   ctx.fillStyle = "red";
   enemies.forEach(e => {
     ctx.beginPath();
@@ -377,7 +371,6 @@ function draw() {
     ctx.fill();
   });
 
-  // powerUp
   if (powerUp) {
     ctx.fillStyle = "lime";
     ctx.beginPath();
