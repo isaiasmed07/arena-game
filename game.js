@@ -3,7 +3,7 @@ const ctx = canvas.getContext("2d");
 
 // ===================== SPRITE =====================
 const playerImage = new Image();
-playerImage.src = "./assets/player.png"; // ⚠️ IMPORTANTE: ruta relativa correcta
+playerImage.src = "./assets/player.png";
 
 let spriteLoaded = false;
 playerImage.onload = () => {
@@ -13,10 +13,7 @@ playerImage.onerror = () => {
   console.warn("⚠️ Sprite no encontrado, usando fallback");
 };
 
-// tamaño de frame
 const FRAME_SIZE = 512;
-
-// dirección
 let playerDir = "down";
 
 // ===================== SUPABASE =====================
@@ -73,10 +70,34 @@ document.addEventListener("keyup", e => {
   keys[e.key.toLowerCase()] = false;
 });
 
-// click
+// click PC
 canvas.addEventListener("click", e => {
   if (!gameStarted) return;
   shoot(e.clientX, e.clientY);
+});
+
+// ===================== TOUCH CONTROLS =====================
+canvas.addEventListener("touchstart", (e) => {
+  if (!gameStarted) return;
+
+  const t = e.touches[0];
+  touch.x = t.clientX;
+  touch.y = t.clientY;
+  touch.active = true;
+
+  shoot(t.clientX, t.clientY);
+});
+
+canvas.addEventListener("touchmove", (e) => {
+  if (!gameStarted) return;
+
+  const t = e.touches[0];
+  touch.x = t.clientX;
+  touch.y = t.clientY;
+});
+
+canvas.addEventListener("touchend", () => {
+  touch.active = false;
 });
 
 // ===================== PLAYER =====================
@@ -180,7 +201,6 @@ async function loadMenuLeaderboard() {
 // ===================== START =====================
 window.startGame = function () {
 
-  // guardar usuario
   const name = document.getElementById("playerName").value || "Player";
   const avatar = document.getElementById("playerAvatar").value || "🙂";
 
@@ -209,11 +229,26 @@ window.startGame = function () {
 function update() {
   if (!gameStarted) return;
 
-  // movimiento
+  // teclado
   if (keys["w"]) { player.y -= player.speed; playerDir = "up"; }
   if (keys["s"]) { player.y += player.speed; playerDir = "down"; }
   if (keys["a"]) { player.x -= player.speed; playerDir = "left"; }
   if (keys["d"]) { player.x += player.speed; playerDir = "right"; }
+
+  // 🔥 MOVIMIENTO TOUCH
+  if (touch.active) {
+    const angle = Math.atan2(touch.y - player.y, touch.x - player.x);
+
+    player.x += Math.cos(angle) * player.speed;
+    player.y += Math.sin(angle) * player.speed;
+
+    // dirección sprite
+    if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
+      playerDir = Math.cos(angle) > 0 ? "right" : "left";
+    } else {
+      playerDir = Math.sin(angle) > 0 ? "down" : "up";
+    }
+  }
 
   // límites
   player.x = Math.max(0, Math.min(canvas.width, player.x));
@@ -279,7 +314,7 @@ function update() {
     powerActive = false;
   }
 
-  // 🟢 UI POWER
+  // UI POWER
   const powerUI = document.getElementById("powerUI");
 
   if (powerActive) {
@@ -308,7 +343,6 @@ function draw() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // aura
   if (powerActive) {
     ctx.fillStyle = "rgba(0,255,0,0.25)";
     ctx.beginPath();
@@ -316,7 +350,6 @@ function draw() {
     ctx.fill();
   }
 
-  // 🎮 SPRITE o fallback
   if (spriteLoaded) {
     let sx = 0, sy = 0;
 
@@ -334,18 +367,15 @@ function draw() {
       player.size * 2
     );
   } else {
-    // fallback círculo
     ctx.fillStyle = "white";
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // balas
   ctx.fillStyle = "yellow";
   bullets.forEach(b => ctx.fillRect(b.x, b.y, 5, 5));
 
-  // enemigos
   ctx.fillStyle = "red";
   enemies.forEach(e => {
     ctx.beginPath();
@@ -353,7 +383,6 @@ function draw() {
     ctx.fill();
   });
 
-  // power
   if (powerUp) {
     ctx.fillStyle = "lime";
     ctx.beginPath();
