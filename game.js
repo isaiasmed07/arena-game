@@ -11,6 +11,12 @@ let supabaseClient = null;
 let gameStarted = false;
 let leaderboardInterval = null;
 
+// 🟢 POWER SYSTEM
+let powerUp = null;
+let powerActive = false;
+let powerEndTime = 0;
+let nextPowerScore = 600;
+
 // ===================== RESIZE =====================
 function resize() {
   canvas.width = window.innerWidth;
@@ -35,7 +41,6 @@ window.addEventListener("load", () => {
   if (savedName) document.getElementById("playerName").value = savedName;
   if (savedAvatar) document.getElementById("playerAvatar").value = savedAvatar;
 
-  // 🔥 cargar leaderboard del menú
   loadMenuLeaderboard();
 });
 
@@ -46,18 +51,15 @@ document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 // touch
 canvas.addEventListener("touchstart", (e) => {
   if (!gameStarted) return;
-
   const t = e.touches[0];
   touch.x = t.clientX;
   touch.y = t.clientY;
   touch.active = true;
-
   shoot(t.clientX, t.clientY);
 });
 
 canvas.addEventListener("touchmove", (e) => {
   if (!gameStarted) return;
-
   const t = e.touches[0];
   touch.x = t.clientX;
   touch.y = t.clientY;
@@ -90,11 +92,16 @@ let score = 0;
 function shoot(x, y) {
   const angle = Math.atan2(y - player.y, x - player.x);
 
-  bullets.push({
-    x: player.x,
-    y: player.y,
-    dx: Math.cos(angle) * 6,
-    dy: Math.sin(angle) * 6
+  // 🔥 buff activo: triple disparo
+  const spread = powerActive ? [-0.2, 0, 0.2] : [0];
+
+  spread.forEach(offset => {
+    bullets.push({
+      x: player.x,
+      y: player.y,
+      dx: Math.cos(angle + offset) * 6,
+      dy: Math.sin(angle + offset) * 6
+    });
   });
 }
 
@@ -120,23 +127,34 @@ function spawnEnemy() {
     speed: 1 + score * 0.01
   });
 }
-
 setInterval(spawnEnemy, 1000);
 
-// ===================== LEADERBOARD GAME (TOP 5) =====================
+// ===================== POWER UP =====================
+function spawnPowerUp() {
+  powerUp = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    size: 15,
+    hp: 50
+  };
+}
+
+function explodePowerUp(x, y) {
+  enemies = enemies.filter(e => {
+    const d = Math.hypot(e.x - x, e.y - y);
+    return d > 100;
+  });
+}
+
+// ===================== LEADERBOARD =====================
 async function loadGameLeaderboard() {
   if (!supabaseClient) return;
 
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("leaderboard")
     .select("*")
     .order("score", { ascending: false })
     .limit(5);
-
-  if (error) {
-    console.log("Error leaderboard game:", error.message);
-    return;
-  }
 
   const board = document.getElementById("leaderboard");
   if (!board) return;
@@ -145,26 +163,13 @@ async function loadGameLeaderboard() {
 
   data.forEach((row, index) => {
     const div = document.createElement("div");
-
-    let avatarHTML = "🙂";
-
-    if (row.avatar) {
-      if (row.avatar.startsWith("http")) {
-        avatarHTML = `<img src="${row.avatar}" class="avatar-img">`;
-      } else {
-        avatarHTML = `<span class="avatar-emoji">${row.avatar}</span>`;
-      }
-    }
-
-    div.innerHTML = `${avatarHTML} ${index + 1}. ${row.name} - ${row.score}`;
+    div.innerHTML = `${index + 1}. ${row.name} - ${row.score}`;
     board.appendChild(div);
   });
 }
 
-// ===================== LEADERBOARD MENU (TOP 10) =====================
 async function loadMenuLeaderboard() {
   if (!window.supabase) return;
-
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const { data } = await client
@@ -180,24 +185,7 @@ async function loadMenuLeaderboard() {
 
   data.forEach((row, index) => {
     const div = document.createElement("div");
-
-    let avatarHTML = "🙂";
-
-    if (row.avatar) {
-      if (row.avatar.startsWith("http")) {
-        avatarHTML = `<img src="${row.avatar}" class="avatar-img">`;
-      } else {
-        avatarHTML = `<span class="avatar-emoji">${row.avatar}</span>`;
-      }
-    }
-
-    div.innerHTML = `
-      <span class="rank">#${index + 1}</span>
-      ${avatarHTML}
-      <span class="name">${row.name}</span>
-      <span class="score">${row.score}</span>
-    `;
-
+    div.innerHTML = `#${index + 1} ${row.name} - ${row.score}`;
     board.appendChild(div);
   });
 }
@@ -214,7 +202,7 @@ async function saveGlobalScore(finalScore) {
   ]);
 }
 
-// ===================== START GAME =====================
+// ===================== START =====================
 window.startGame = function () {
   const name = document.getElementById("playerName").value || "Player";
   const avatar = document.getElementById("playerAvatar").value || "🙂";
@@ -224,9 +212,8 @@ window.startGame = function () {
 
   document.getElementById("startScreen").style.display = "none";
 
-  if (window.supabase && window.supabase.createClient) {
+  if (window.supabase) {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
     loadGameLeaderboard();
     leaderboardInterval = setInterval(loadGameLeaderboard, 5000);
   }
@@ -247,47 +234,92 @@ window.startGame = function () {
 function update() {
   if (!gameStarted) return;
 
+  // movimiento
   if (keys["w"]) player.y -= player.speed;
   if (keys["s"]) player.y += player.speed;
   if (keys["a"]) player.x -= player.speed;
   if (keys["d"]) player.x += player.speed;
 
+  // touch move
   if (touch.active) {
     const angle = Math.atan2(touch.y - player.y, touch.x - player.x);
     player.x += Math.cos(angle) * player.speed;
     player.y += Math.sin(angle) * player.speed;
   }
 
+  // spawn power
+  if (score >= nextPowerScore && !powerUp) {
+    spawnPowerUp();
+  }
+
+  // power movement
+  if (powerUp) {
+    const angle = Math.atan2(powerUp.y - player.y, powerUp.x - player.x);
+    powerUp.x += Math.cos(angle) * 1.5;
+
+    // centro
+    powerUp.x += (canvas.width / 2 - powerUp.x) * 0.01;
+    powerUp.y += (canvas.height / 2 - powerUp.y) * 0.01;
+  }
+
+  // bullets
   bullets.forEach(b => {
     b.x += b.dx;
     b.y += b.dy;
   });
 
+  // enemies
   enemies.forEach(e => {
-    const angle = Math.atan2(player.y - e.y, player.x - e.x);
+    let target = player;
+
+    if (powerUp && Math.random() < 0.3) {
+      target = powerUp;
+    }
+
+    const angle = Math.atan2(target.y - e.y, target.x - e.x);
     e.x += Math.cos(angle) * e.speed;
     e.y += Math.sin(angle) * e.speed;
 
     if (Math.hypot(player.x - e.x, player.y - e.y) < player.size) {
       player.hp -= 1;
     }
+
+    if (powerUp && Math.hypot(powerUp.x - e.x, powerUp.y - e.y) < powerUp.size) {
+      powerUp.hp -= 1;
+    }
   });
 
+  // bullet collisions
   bullets.forEach((b, bi) => {
     enemies.forEach((e, ei) => {
       if (Math.hypot(b.x - e.x, b.y - e.y) < e.size) {
         enemies.splice(ei, 1);
         bullets.splice(bi, 1);
         score += 10;
-
-        if (score > best) {
-          best = score;
-          localStorage.setItem("bestScore", best);
-          document.getElementById("best").innerText = best;
-        }
       }
     });
   });
+
+  // player absorbs power
+  if (powerUp && Math.hypot(player.x - powerUp.x, player.y - powerUp.y) < 30) {
+    powerActive = true;
+    powerEndTime = Date.now() + 25000;
+    explodePowerUp(powerUp.x, powerUp.y);
+    powerUp = null;
+    nextPowerScore = score + 400;
+  }
+
+  // power destroyed
+  if (powerUp && powerUp.hp <= 0) {
+    explodePowerUp(powerUp.x, powerUp.y);
+    powerUp = null;
+    nextPowerScore = score + 400;
+  }
+
+  // power timer
+  if (powerActive && Date.now() > powerEndTime) {
+    powerActive = false;
+  }
 
   document.getElementById("score").innerText = score;
   document.getElementById("hp").innerText = player.hp;
@@ -298,20 +330,39 @@ function draw() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // aura buff
+  if (powerActive) {
+    ctx.fillStyle = "rgba(0,255,0,0.2)";
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.size + 10, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // player
   ctx.fillStyle = "white";
   ctx.beginPath();
   ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
   ctx.fill();
 
+  // bullets
   ctx.fillStyle = "yellow";
   bullets.forEach(b => ctx.fillRect(b.x, b.y, 5, 5));
 
+  // enemies
   ctx.fillStyle = "red";
   enemies.forEach(e => {
     ctx.beginPath();
     ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
     ctx.fill();
   });
+
+  // powerUp
+  if (powerUp) {
+    ctx.fillStyle = "lime";
+    ctx.beginPath();
+    ctx.arc(powerUp.x, powerUp.y, powerUp.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 // ===================== LOOP =====================
@@ -325,13 +376,7 @@ async function gameLoop() {
     requestAnimationFrame(gameLoop);
   } else {
     alert("Game Over | Score: " + score);
-
     await saveGlobalScore(score);
-
-    if (score > best) {
-      localStorage.setItem("bestScore", score);
-    }
-
     location.reload();
   }
 }

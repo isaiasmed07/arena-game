@@ -72,7 +72,7 @@ canvas {
   color: gold;
 }
 
-/* filas */
+/* filas leaderboard */
 #leaderboard div {
   display: flex;
   align-items: center;
@@ -85,9 +85,10 @@ canvas {
   transition: 0.2s;
 }
 
-/* hover leve */
+/* hover */
 #leaderboard div:hover {
   background: rgba(255,255,255,0.05);
+  transform: scale(1.02);
 }
 
 /* top 1,2,3 */
@@ -111,7 +112,7 @@ canvas {
   overflow-y: auto;
 }
 
-/* scrollbar bonita */
+/* scrollbar */
 .menu-board::-webkit-scrollbar {
   width: 6px;
 }
@@ -138,7 +139,7 @@ canvas {
 
 .menu-board div:hover {
   transform: scale(1.02);
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,215,0,0.15);
 }
 
 /* ranking */
@@ -159,7 +160,7 @@ canvas {
   font-weight: bold;
 }
 
-/* 🥇 top destacados */
+/* top destacados */
 .menu-board div:nth-child(2) {
   color: gold;
   font-weight: bold;
@@ -175,21 +176,23 @@ canvas {
 
 /* 👤 AVATAR */
 .avatar-img {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   object-fit: cover;
+  display: inline-block;
 }
 
 .avatar-emoji {
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1;
+  display: inline-block;
 }
 
-/* ✨ ANIMACIÓN entrada top */
+/* ✨ ANIMACIÓN entrada */
 @keyframes popIn {
   0% {
-    transform: scale(0.8);
+    transform: scale(0.85);
     opacity: 0;
   }
   100% {
@@ -201,6 +204,11 @@ canvas {
 .menu-board div,
 #leaderboard div {
   animation: popIn 0.25s ease;
+}
+
+/* 🟢 (PREPARADO) efecto power-up */
+.powerup-active {
+  box-shadow: 0 0 20px lime;
 }
 
 /* 🎮 PANTALLA DE INICIO */
@@ -216,7 +224,7 @@ canvas {
   align-items: center;
 }
 
-/* 🧾 panel login */
+/* 🧾 panel */
 .panel {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1);
@@ -264,7 +272,7 @@ canvas {
 }
 
 .panel button:hover {
-  transform: scale(1.03);
+  transform: scale(1.05);
   background: #ffdf4d;
 }
 
