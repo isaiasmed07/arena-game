@@ -45,6 +45,43 @@ canvas {
   font-weight: bold;
 }
 
+/* 🟢 POWER UI */
+#powerUI {
+  position: fixed;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  color: #00ff88;
+  font-size: 14px;
+  font-weight: bold;
+
+  background: rgba(0,255,0,0.12);
+  border: 1px solid rgba(0,255,0,0.4);
+
+  padding: 8px 14px;
+  border-radius: 12px;
+
+  z-index: 20;
+
+  display: none;
+
+  backdrop-filter: blur(4px);
+
+  box-shadow: 0 0 10px rgba(0,255,0,0.3);
+
+  animation: powerGlow 1s infinite alternate;
+}
+
+@keyframes powerGlow {
+  from {
+    box-shadow: 0 0 10px rgba(0,255,0,0.3);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(0,255,0,0.7);
+  }
+}
+
 /* 🏆 LEADERBOARD JUEGO (TOP 5) */
 #leaderboard {
   position: fixed;
@@ -206,9 +243,9 @@ canvas {
   animation: popIn 0.25s ease;
 }
 
-/* 🟢 (PREPARADO) efecto power-up */
+/* 🟢 efecto power-up (extra si lo usas en JS) */
 .powerup-active {
-  box-shadow: 0 0 20px lime;
+  box-shadow: 0 0 25px lime;
 }
 
 /* 🎮 PANTALLA DE INICIO */

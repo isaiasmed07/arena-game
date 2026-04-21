@@ -46,7 +46,6 @@
       margin: 4px 0;
       border-radius: 6px;
       background: rgba(255,255,255,0.05);
-
       transition: 0.2s;
     }
 
@@ -83,6 +82,27 @@
       margin: 0 5px;
       font-size: 16px;
     }
+
+    /* 🟢 POWER UI */
+    #powerUI {
+      position: fixed;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+
+      background: rgba(0,255,0,0.15);
+      border: 1px solid rgba(0,255,0,0.4);
+
+      color: #00ff88;
+      padding: 6px 12px;
+      border-radius: 10px;
+
+      font-size: 14px;
+      display: none;
+      z-index: 20;
+
+      backdrop-filter: blur(4px);
+    }
   </style>
 </head>
 
@@ -113,6 +133,11 @@
     <p>Score: <span id="score">0</span></p>
     <p>Vida: <span id="hp">100</span></p>
     <p>Best: <span id="best">0</span></p>
+  </div>
+
+  <!-- 🟢 POWER INDICATOR -->
+  <div id="powerUI">
+    ⚡ Power activo
   </div>
 
   <!-- 🏆 LEADERBOARD EN JUEGO -->

@@ -92,8 +92,7 @@ let score = 0;
 function shoot(x, y) {
   const angle = Math.atan2(y - player.y, x - player.x);
 
-  // 🔥 buff activo: triple disparo
-  const spread = powerActive ? [-0.2, 0, 0.2] : [0];
+  const spread = powerActive ? [-0.25, 0, 0.25] : [0];
 
   spread.forEach(offset => {
     bullets.push({
@@ -132,8 +131,8 @@ setInterval(spawnEnemy, 1000);
 // ===================== POWER UP =====================
 function spawnPowerUp() {
   powerUp = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
     size: 15,
     hp: 50
   };
@@ -141,8 +140,7 @@ function spawnPowerUp() {
 
 function explodePowerUp(x, y) {
   enemies = enemies.filter(e => {
-    const d = Math.hypot(e.x - x, e.y - y);
-    return d > 100;
+    return Math.hypot(e.x - x, e.y - y) > 120;
   });
 }
 
@@ -223,6 +221,9 @@ window.startGame = function () {
   player.hp = 100;
   bullets = [];
   enemies = [];
+  powerUp = null;
+  powerActive = false;
+  nextPowerScore = 600;
 
   player.x = canvas.width / 2;
   player.y = canvas.height / 2;
@@ -247,19 +248,25 @@ function update() {
     player.y += Math.sin(angle) * player.speed;
   }
 
+  // limitar jugador
+  player.x = Math.max(0, Math.min(canvas.width, player.x));
+  player.y = Math.max(0, Math.min(canvas.height, player.y));
+
   // spawn power
   if (score >= nextPowerScore && !powerUp) {
     spawnPowerUp();
   }
 
-  // power movement
+  // power huye del jugador
   if (powerUp) {
     const angle = Math.atan2(powerUp.y - player.y, powerUp.x - player.x);
-    powerUp.x += Math.cos(angle) * 1.5;
 
-    // centro
-    powerUp.x += (canvas.width / 2 - powerUp.x) * 0.01;
-    powerUp.y += (canvas.height / 2 - powerUp.y) * 0.01;
+    powerUp.x += Math.cos(angle) * 2;
+    powerUp.y += Math.sin(angle) * 2;
+
+    // mantener en pantalla
+    powerUp.x = Math.max(20, Math.min(canvas.width - 20, powerUp.x));
+    powerUp.y = Math.max(20, Math.min(canvas.height - 20, powerUp.y));
   }
 
   // bullets
@@ -272,7 +279,7 @@ function update() {
   enemies.forEach(e => {
     let target = player;
 
-    if (powerUp && Math.random() < 0.3) {
+    if (powerUp && Math.random() < 0.25) {
       target = powerUp;
     }
 
@@ -289,34 +296,48 @@ function update() {
     }
   });
 
-  // bullet collisions
-  bullets.forEach((b, bi) => {
-    enemies.forEach((e, ei) => {
+  // colisiones seguras
+  bullets = bullets.filter(b => {
+    let hit = false;
+
+    enemies = enemies.filter(e => {
       if (Math.hypot(b.x - e.x, b.y - e.y) < e.size) {
-        enemies.splice(ei, 1);
-        bullets.splice(bi, 1);
+        hit = true;
         score += 10;
+
+        if (score > best) {
+          best = score;
+          localStorage.setItem("bestScore", best);
+          document.getElementById("best").innerText = best;
+        }
+
+        return false;
       }
+      return true;
     });
+
+    return !hit;
   });
 
-  // player absorbs power
+  // recoger power
   if (powerUp && Math.hypot(player.x - powerUp.x, player.y - powerUp.y) < 30) {
     powerActive = true;
     powerEndTime = Date.now() + 25000;
+
     explodePowerUp(powerUp.x, powerUp.y);
+
     powerUp = null;
     nextPowerScore = score + 400;
   }
 
-  // power destroyed
+  // destruir power
   if (powerUp && powerUp.hp <= 0) {
     explodePowerUp(powerUp.x, powerUp.y);
     powerUp = null;
     nextPowerScore = score + 400;
   }
 
-  // power timer
+  // timer buff
   if (powerActive && Date.now() > powerEndTime) {
     powerActive = false;
   }
@@ -332,9 +353,9 @@ function draw() {
 
   // aura buff
   if (powerActive) {
-    ctx.fillStyle = "rgba(0,255,0,0.2)";
+    ctx.fillStyle = "rgba(0,255,0,0.25)";
     ctx.beginPath();
-    ctx.arc(player.x, player.y, player.size + 10, 0, Math.PI * 2);
+    ctx.arc(player.x, player.y, player.size + 12, 0, Math.PI * 2);
     ctx.fill();
   }
 
